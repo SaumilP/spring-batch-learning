@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:batch="http://www.springframework.org/schema/batch"
+       xmlns:jdbc="http://www.springframework.org/schema/jdbc"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd http://www.springframework.org/schema/batch http://www.springframework.org/schema/batch/spring-batch.xsd http://www.springframework.org/schema/jdbc http://www.springframework.org/schema/jdbc/spring-jdbc.xsd">
+
+    <!-- Setup classes -->
+    <bean id="jobRepository" class="org.springframework.batch.core.repository.support.MapJobRepositoryFactoryBean" />
+
+    <bean id="jobLauncher" class="org.springframework.batch.core.launch.support.SimpleJobLauncher">
+        <property name="jobRepository" ref="jobRepository" />
+    </bean>
+    <!-- ************ -->
+
+    <bean id="stockDataMapper" class="org.springframework.batch.item.file.mapping.DefaultLineMapper">
+        <property name="fieldSetMapper" ref="stockDataFieldSetMapper" />
+        <property name="lineTokenizer" ref="stockDataLineTokenizer" />
+    </bean>
+
+    <bean name="stockDataReader" class="org.springframework.batch.item.file.FlatFileItemReader">
+        <property name="resource" value="http://www.nasdaq.com/screening/companies-by-name.aspx?letter=0&amp;exchange=nasdaq&amp;render=download" />
+        <property name="lineMapper" ref="stockDataMapper" />
+        <property name="linesToSkip" value="1" />
+    </bean>
+
+    <bean id="stockDataLineTokenizer" class="org.springframework.batch.item.file.transform.DelimitedLineTokenizer" />
+    <bean id="stockDataFieldSetMapper" class="org.sandcastle.springbatch.support.StockDataFieldSetMapper" />
+    <bean id="transactionManager" class="org.springframework.batch.support.transaction.ResourcelessTransactionManager" />
+    <bean id="stockDataExcelWriter" class="org.sandcastle.springbatch.support.StockDataExcelWriter"/>
+
+    <!-- ACTUAL JOB -->
+    <batch:job id="simpleJob">
+        <batch:step id="convertDataToExcel">
+            <batch:tasklet transaction-manager="transactionManager">
+                <batch:chunk reader="stockDataReader" writer="stockDataExcelWriter" commit-interval="500" />
+            </batch:tasklet>
+        </batch:step>
+    </batch:job>
+</beans>
