@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:batch="http://www.springframework.org/schema/batch"
+       xmlns:jdbc="http://www.springframework.org/schema/jdbc"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd http://www.springframework.org/schema/batch http://www.springframework.org/schema/batch/spring-batch.xsd http://www.springframework.org/schema/jdbc http://www.springframework.org/schema/jdbc/spring-jdbc.xsd">
+    <bean id="dataSource" class="org.springframework.jdbc.datasource.DriverManagerDataSource">
+        <property name="driverClassName" value="com.mysql.jdbc.Driver" />
+        <property name="username" value="examiner" />
+        <property name="password" value="password123" />
+    </bean>
+
+    <!-- Setup classes -->
+    <bean id="jobRepository" class="org.springframework.batch.core.repository.support.MapJobRepositoryFactoryBean" />
+
+    <bean id="jobLauncher" class="org.springframework.batch.core.launch.support.SimpleJobLauncher">
+        <property name="jobRepository" ref="jobRepository" />
+    </bean>
+    <!-- ************ -->
+
+    <!-- ItemReader reads from database and returns row mapped by rowMapper -->
+    <bean id="databaseItemReader" class="org.springframework.batch.item.database.JdbcCursorItemReader">
+        <property name="dataSource" ref="dataSource" />
+        <property name="sql" value="SELECT STUDENT_NAME, DATE_OF_BIRTH, PERCENTAGE FROM EXAM_RESULT" />
+        <property name="rowMapper">
+            <bean class="org.sandcastle.spring.batch.support.ExamResultRowMapper" />
+        </property>
+    </bean>
+
+    <!-- ItemWriter writes a line into output file -->
+    <bean id="flatFileItemWriter" class="org.springframework.batch.item.file.FlatFileItemWriter" scope="step">
+        <property name="resource" value="file:csv/ExamResult.csv" />
+        <property name="lineAggregator">
+
+            <!-- An aggregator which converts an object into delimited list of strings -->
+            <bean class="org.springframework.batch.item.file.transform.DelimitedLineAggregator">
+                <property name="delimiter" value="," />
+
+                <!-- Extractor which returns the value of beans property through reflection s-->
+                <property name="fieldExtractor">
+                    <bean class="org.springframework.batch.item.file.transform.BeanWrapperFieldExtractor">
+                        <property name="names" value="studentName, percentage, dob" />
+                    </bean>
+                </property>
+            </bean>
+        </property>
+    </bean>
+
+    <!-- Optional JobExecutionListener to perform logic execution before and after the job -->
+    <bean id="jobExecutionListener" class="org.sandcastle.spring.batch.listners.ExamResultJobListener" />
+
+    <!-- Optional ItemProcessor to perform logic/filtering on the input records -->
+    <bean id="itemProcessor" class="org.sandcastle.spring.batch.support.ResultItemProcessor" />
+
+    <!-- ACTUAL JOB -->
+    <batch:job id="examResultJob">
+        <batch:step id="processStep">
+            <batch:tasklet transaction-manager="transactionManager">
+                <batch:chunk reader="databaseItemReader" writer="flatFileItemWriter" processor="itemProcessor" commit-interval="10" />
+            </batch:tasklet>
+        </batch:step>
+        <batch:listeners>
+            <batch:listener ref="jobExecutionListener" />
+        </batch:listeners>
+    </batch:job>
+</beans>
