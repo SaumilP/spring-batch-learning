@@ -2,8 +2,8 @@ SpringBatchDbToCSV
 ------
 Simple Spring Batch Programme to read from MySQL database and generate CSV file using FlatFileItemWriter.
 
-** Dependencies
--------
+Dependencies
+========
 * Spring Batch
 * Spring core
 * Spring jdbc

@@ -23,10 +23,15 @@
         <property name="linesToSkip" value="1" />
     </bean>
 
-    <bean id="stockDataLineTokenizer" class="org.springframework.batch.item.file.transform.DelimitedLineTokenizer" />
+    <bean id="stockDataLineMapper" class="org.springframework.batch.item.file.mapping.DefaultLineMapper">
+        <property name="fieldSetMapper" ref="stockDataFieldSetMapper" />
+        <property name="lineTokenizer" ref="stockDataLineTokenizer" />
+    </bean>
+
     <bean id="stockDataFieldSetMapper" class="org.sandcastle.springbatch.support.StockDataFieldSetMapper" />
     <bean id="transactionManager" class="org.springframework.batch.support.transaction.ResourcelessTransactionManager" />
     <bean id="stockDataExcelWriter" class="org.sandcastle.springbatch.support.StockDataExcelWriter"/>
+    <bean id="stockDataLineTokenizer" class="org.springframework.batch.item.file.transform.DelimitedLineTokenizer" />
 
     <!-- ACTUAL JOB -->
     <batch:job id="simpleJob">
